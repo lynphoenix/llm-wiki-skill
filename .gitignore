@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.env
+
+# Data
+*.pdf
+*.csv
+*.xlsx
+*.h5
+*.pkl
+*.pickle
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Wiki data (user-specific, don't commit)
+# Uncomment if you want to ignore wiki content:
+# sources/
+# concepts/
+# raw/
+# index.md
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model checkpoints
+*.ckpt
+*.pth
+*.pt
