@@ -108,7 +108,7 @@ def main():
         f"",
         f"**Directory:** {directory}",
         f"**Total PDFs:** {len(pdf_files)}",
-        f"**Scan Date:** {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"**Scan Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"",
         "---",
         f"",

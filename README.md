@@ -19,8 +19,14 @@ LLM Wiki is a personal knowledge management tool where **LLM acts as the "compil
 
 ### 1. Install the Skill
 
-Copy `SKILL.md` to your Claude Code skills directory:
+You can install the skill and its scripts using the install script:
 
+```bash
+chmod +x scripts/install.sh
+./scripts/install.sh
+```
+
+Or manually:
 ```bash
 mkdir -p ~/.claude/skills/llm-wiki
 cp SKILL.md ~/.claude/skills/llm-wiki/
@@ -31,10 +37,7 @@ cp SKILL.md ~/.claude/skills/llm-wiki/
 Tell Claude Code:
 > "帮我建一个 wiki 来管理论文" (Help me set up a wiki to manage papers)
 
-Or manually:
-```bash
-mkdir -p ~/Documents/wikis
-```
+Claude will use the `scripts/init_wiki.sh` script to set up the directory structure.
 
 ### 3. Configure (Optional)
 
@@ -57,8 +60,17 @@ maintain:
 **Ingest a paper:**
 > "帮我把这篇论文加到wiki" (Add this paper to wiki)
 
+**Batch Ingest:**
+> "帮我管理这个目录下的论文" (Help me manage the papers in this directory)
+> Claude can use `scripts/ingest_papers.py` to generate a summary report.
+
+**Ingest a Codebase:**
+> "帮我分析这个代码库" (Help me analyze this codebase)
+> Claude will use `scripts/ingest_repo.py` to scan the codebase and create a code wiki.
+
 **Query:**
 > "这个领域最近有什么进展?" (What's new in this field?)
+> "这个项目的鉴权逻辑是怎么串起来的？" (How does the authentication flow work in this project?)
 
 **Search:**
 > "搜索 anomaly detection" (Search for anomaly detection)
@@ -91,7 +103,7 @@ maintain:
                  ▼
 ┌─────────────────────────────────────────┐
 │  SKILL.md (workflow definitions)         │
-│  ├── Ingest: PDF → Wiki entry           │
+│  ├── Ingest: PDF/Code → Wiki entry      │
 │  ├── Query: Question → Answer          │
 │  ├── Search: Keyword → Results          │
 │  └── Maintain: Check & Fix              │
@@ -106,49 +118,27 @@ maintain:
 └─────────────────────────────────────────┘
 ```
 
-## Workflow Details
-
-### Ingest
-
-1. **Locate PDF** - User specifies path or uses default
-2. **Extract Text** - Marker API (GPU-accelerated) or Claude native PDF parsing
-3. **LLM Analysis** - Extract title, authors, tags, summary, key concepts
-4. **Write Wiki** - Create source file + update concepts + update index
-
-### Query
-
-1. **Analyze Question** - Extract key concepts and tags
-2. **Load Wiki** - Read relevant source and concept files
-3. **Generate Answer** - Based on wiki content, cite sources
-
-### Maintain
-
-1. **Cross-reference integrity** - Check all `[[wiki-links]]` exist
-2. **Contradiction detection** - Flag conflicting definitions
-3. **Orphan pages** - Find unreferenced pages
-4. **Index sync** - Ensure index.md reflects actual content
-
 ## Dependencies
 
 ### Optional: Marker API (GPU-accelerated PDF parsing)
 
-For faster PDF parsing, deploy Marker on a GPU server:
+For faster PDF parsing, deploy Marker on a GPU server. The skill is configured to use a local server at `http://localhost:5203/v1/parse/file` by default.
 
 ```bash
 # Install
-pip install marker-pdf
+pip install marker-pdf fastapi uvicorn python-multipart
 
 # Run server
-marker_server.py --port 5203 --gpu 7
+python scripts/marker_server.py --port 5203 --gpu 0
 ```
 
-Without Marker, the skill falls back to Claude's native PDF parsing.
+If Marker is not available, the skill intelligently falls back to Claude's native PDF parsing.
 
 ## Customization
 
 ### Adding Custom Tags
 
-Edit the tag list in `SKILL.md` or add to `config.yaml`:
+Edit the tag list in `config.yaml`:
 
 ```yaml
 default_tags:
@@ -163,8 +153,3 @@ Modify the source/concept templates in `SKILL.md` to match your preferred format
 ## License
 
 MIT License
-
-## References
-
-- [Karpathy's LLM Wiki](https://github.com/karpathy/llm-wiki) - The inspiration for this pattern
-- [Marker PDF Parser](https://github.com/VikParuchuri/marker) - GPU-accelerated PDF to Markdown

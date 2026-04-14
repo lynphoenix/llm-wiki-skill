@@ -1,6 +1,6 @@
 ---
 name: llm-wiki
-description: LLM论文Wiki知识库管理工具。帮你整理、阅读、总结论文，建立个人知识wiki，支持多领域标签。
+description: LLM双栖Wiki工具（论文+代码库）。帮你阅读总结论文、分析代码架构，建立跨域知识wiki，支持多领域标签。
 version: 1.0.0
 ---
 
@@ -10,10 +10,11 @@ version: 1.0.0
 这是一个基于 Karpathy "LLM Wiki" 模式的知识管理工具。LLM 作为知识库的"编译器"和"管理员"，用户只管问问题，wiki 在后台自动维护。
 
 ## 核心能力
-- Ingest: 读取PDF论文，提取内容，生成结构化wiki条目
-- Query: 根据wiki内容回答关于论文的问题
-- Maintain: 检查交叉引用，标记矛盾，更新索引
-- Search: 搜索wiki中的相关内容
+- Ingest (PDF): 读取学术论文，提取内容，生成结构化条目。
+- Ingest (Code): 扫描并读取代码库源文件，生成系统架构与代码逻辑的 Wiki。
+- Query: 根据wiki内容回答关于论文或代码架构的问题。
+- Maintain: 检查交叉引用，检测矛盾，更新全局索引。
+- Search: 全文搜索论文和代码的相关内容。
 
 ## Ingest 工作流
 
@@ -26,9 +27,11 @@ version: 1.0.0
    - 识别所有 PDF 文件
 
 2. **提取文本**
-   优先调用 Marker API（如配置了本地服务器或 API key）：
+   - 对于批量导入场景，可建议用户使用或直接代为执行 `scripts/ingest_papers.py --dir <目录>` 生成概览报告。
+   优先调用 Marker API（智能路由：判断如果是理工科论文、包含大量公式图表，强烈建议使用 Marker；否则可直接使用 Claude 原生解析以提高速度）：
    ```
-   POST https://api.marker.cloud/v1/document
+   优先使用本地部署的 Marker Server: POST http://localhost:5203/v1/parse/file (或其他配置的本地地址)
+   如果本地不可用，则尝试使用官方 API: POST https://api.marker.cloud/v1/document
    Headers: Authorization: Bearer <marker_api_key>
    Content-Type: multipart/form-data
    Body: file=<pdf_binary>
@@ -46,6 +49,12 @@ version: 1.0.0
      date: <发表年份>
      tags: [<领域标签1>, <标签2>]
      summary: <3-5句摘要>
+     macro_analysis:
+       1. 核心问题: <这篇论文具体在解决什么核心问题或业务痛点？>
+       2. 具体方法: <论文提出了什么具体的解决方案、算法或创新设计来解决上述问题？>
+       3. 实验与验证: <该方法是如何被验证的？取得了哪些关键突破或性能提升？>
+       4. 局限与不足: <该研究目前存在哪些局限性或尚未解决的问题？>
+       5. 启发与价值: <这项工作对后续研究或实际工程应用有什么重要启发？>
      key_concepts: <3-5个关键概念，格式：概念名: 一句话描述>
      contributions: <主要贡献，格式：1. ... 2. ...>
      full_markdown: <完整 Markdown 内容>
@@ -57,8 +66,9 @@ version: 1.0.0
    - title: 论文标题
    - authors: 作者列表
    - date: 发表日期（如有）
-   - tags: 自动打标签（llm, embodied-ai, anomaly-detection, graph-neural-network, transformer, gnn, reinforcement-learning, self-supervised, reasoning, planning, control, classification, time-series 等）
+   - tags: 自动打标签（请先读取 wiki 目录下的 config.yaml 中的 default_tags，优先使用这些预设标签，如有必要再创建新标签）
    - summary: 3-5句摘要
+   - macro_analysis: 回答关于核心问题、具体方法、实验验证、局限性、启发与价值的5个宏观问题
    - key_concepts: 3-5个关键概念
    - contributions: 主要贡献
 
@@ -85,6 +95,23 @@ pages: <页码>
 ## Summary
 
 <LLM生成的论文摘要，3-5句>
+
+## 核心分析 (Macro Analysis)
+
+### 1. 核心问题 (Core Problem)
+<这篇论文具体在解决什么核心问题或业务痛点？>
+
+### 2. 具体方法 (Proposed Method)
+<论文提出了什么具体的解决方案、算法或创新设计来解决上述问题？>
+
+### 3. 实验与验证 (Evaluation & Results)
+<该方法是如何被验证的？取得了哪些关键突破或性能提升？>
+
+### 4. 局限与不足 (Limitations)
+<该研究目前存在哪些局限性或尚未解决的问题？>
+
+### 5. 启发与价值 (Insights & Value)
+<这项工作对后续研究或实际工程应用有什么重要启发？>
 
 ## Key Concepts
 
@@ -140,6 +167,89 @@ last_updated: <YYYY-MM-DD>
 │   └── <slug>.md
 └── concepts/        # 概念页面
     └── <slug>.md
+
+
+## 扩展：代码库 Ingest 工作流 (Code Wiki)
+
+除了论文，Wiki 同样支持对代码库（Repo）进行知识索引和总结。两者共存，论文记录"理论"，代码库记录"实现"。
+
+### 触发方式
+用户说"帮我分析这个代码库"、"将这个目录的代码加到wiki"
+
+### 处理流程
+1. **扫描代码结构**
+   - 执行 `scripts/ingest_repo.py --dir <代码路径>`，自动读取 .gitignore 并列出核心源文件。
+   
+2. **提取与分析 (逐文件或按模块)**
+   - Claude 读取核心源码文件，提取结构化信息：
+     ```
+     请阅读这段代码，提取并返回以下结构化信息：
+     module_name: <模块/文件名称>
+     file_path: <相对路径>
+     language: <编程语言>
+     dependencies: [<依赖的内部模块或外部库>]
+     core_logic: <3-5句核心职责总结>
+     exports: [<导出的关键类/接口/函数>]
+     ```
+3. **宏观架构分析 (预设问题)**
+   - 在逐个分析完核心文件后，Claude 必须基于已阅读的代码，回答以下 5 个核心架构问题，并生成一个概念页面：
+     1. **宏观定位 (Macro positioning)**: 这个项目是什么？解决什么业务场景？
+     2. **核心入口 (Core entry points)**: 系统的启动入口或核心 API 在哪？（例如 main 函数、对外暴露的类）
+     3. **数据流向 (Data flow)**: 核心数据是如何在系统中流转的？
+     4. **扩展性机制 (Extensibility)**: 系统提供了哪些接口/基类供二次开发或插件化扩展？
+     5. **复杂机制 (Tricky mechanisms)**: 代码中是否有特殊的并发处理、硬件通信协议（如 CAN、RS485）或复杂的业务状态机？
+
+4. **写入 Wiki (Code Source & Concept)**
+   - 创建源文件：`/wiki_path/sources/code_<slug>.md`
+   - 根据宏观架构分析，创建或更新概念页面：`/wiki_path/concepts/architecture_<repo_name>.md`
+   - 将业务概念（如 `Auth_Flow`, `Data_Pipeline`）链接到 Concept 页面。
+
+### Code Source 文件模板
+```markdown
+---
+type: code_module
+title: <module_name>
+file_path: <file_path>
+language: <language>
+tags: [code, <语言tag>, <业务模块tag>]
+---
+
+## Core Logic
+<LLM总结的核心职责>
+
+## Exports (Key Interfaces)
+- `Function/Class`: <一句话说明>
+
+## Dependencies
+- <外部库/内部模块>
+
+## Related Concepts / Architecture
+- [[concept-slug]] (关联的架构设计或业务概念)
+- [[architecture_<repo_name>]] (宏观架构页面)
+```
+
+### Repo Architecture Concept 模板
+```markdown
+---
+title: <Repo Name> Architecture Overview
+tags: [architecture, code]
+---
+
+## 宏观定位
+<该项目是什么，解决什么业务场景>
+
+## 核心入口
+<系统的启动入口或核心 API 列表及说明>
+
+## 数据流向
+<核心数据的流转过程>
+
+## 扩展性机制
+<支持二次开发或插件化的接口/基类>
+
+## 复杂机制
+<并发、特殊硬件协议、状态机等核心难点解析>
+```
 
 ## Query 工作流
 
@@ -228,6 +338,7 @@ last_updated: <YYYY-MM-DD>
 
 ### 首次使用
 1. 用户激活 skill: "帮我建一个 wiki 来管理论文"
+   - 当用户要求初始化时，请优先尝试执行项目目录下的 `scripts/init_wiki.sh <wiki_path>` 脚本。
 2. Skill 确认 wiki 路径（默认 ~/Documents/wikis）
 3. 创建目录结构
 4. 询问 Marker API key 或引导用户获取
