@@ -175,6 +175,11 @@ last_updated: <YYYY-MM-DD>
 
 除了论文，Wiki 同样支持对代码库（Repo）进行知识索引和总结。两者共存，论文记录"理论"，代码库记录"实现"。
 
+**⚠️ 防偷懒强制约束 (ANTI-LAZINESS CONSTRAINT)**: 
+作为 Agent，你**绝对不被允许**跳过步骤或直奔最终结论。你必须严格按照 1 -> 2 -> 3 -> 4 的顺序执行。
+**特别是第 2 步**：你必须对核心源码逐一阅读，并**立即使用 `Write` 工具**将分析结果写入 `/wiki_path/sources/` 目录。
+如果发现你只输出了第 3 步的宏观架构而没有生成 `sources/` 目录下的单文件分析，这将被视为严重失败！
+
 ### 触发方式
 用户说"帮我分析这个代码库"、"将这个目录的代码加到wiki"
 
@@ -182,8 +187,8 @@ last_updated: <YYYY-MM-DD>
 1. **扫描代码结构**
    - 执行 `scripts/ingest_repo.py --dir <代码路径>`，自动读取 .gitignore 并列出核心源文件。
    
-2. **提取与分析 (逐文件或按模块)**
-   - Claude 读取核心源码文件，提取结构化信息：
+2. **提取与分析 (逐文件或按模块) - MUST WRITE TO DISK FIRST**
+   - Claude 逐一读取核心源码文件，提取结构化信息：
      ```
      请阅读这段代码，提取并返回以下结构化信息：
      module_name: <模块/文件名称>
@@ -193,17 +198,18 @@ last_updated: <YYYY-MM-DD>
      core_logic: <3-5句核心职责总结>
      exports: [<导出的关键类/接口/函数>]
      ```
+   - **紧接着这一步，立刻使用 `Write` 工具创建源文件**：`/wiki_path/sources/code_<repo>_<slug>.md`。所有核心文件必须被分析并写入磁盘后，才能进入下一步。
+
 3. **宏观架构分析 (预设问题)**
-   - 在逐个分析完核心文件后，Claude 必须基于已阅读的代码，回答以下 5 个核心架构问题，并生成一个概念页面：
+   - 在确认所有核心单文件都已经成功存入 `sources/` 后，Claude 必须基于已阅读的代码，回答以下 5 个核心架构问题，并生成一个概念页面：
      1. **宏观定位 (Macro positioning)**: 这个项目是什么？解决什么业务场景？
      2. **核心入口 (Core entry points)**: 系统的启动入口或核心 API 在哪？（例如 main 函数、对外暴露的类）
      3. **数据流向 (Data flow)**: 核心数据是如何在系统中流转的？
      4. **扩展性机制 (Extensibility)**: 系统提供了哪些接口/基类供二次开发或插件化扩展？
      5. **复杂机制 (Tricky mechanisms)**: 代码中是否有特殊的并发处理、硬件通信协议（如 CAN、RS485）或复杂的业务状态机？
 
-4. **写入 Wiki (Code Source & Concept - CRITICAL)**
-   - **强制要求：分析完成后，你必须使用 `Write` 工具将报告直接写入以下指定的文件路径中。不要只在聊天框里口头汇报！**
-   - 创建源文件：`/wiki_path/sources/code_<slug>.md`
+4. **写入 Wiki (Concept - CRITICAL)**
+   - **强制要求：分析完成后，你必须使用 `Write` 工具将架构报告直接写入以下指定的文件路径中。不要只在聊天框里口头汇报！**
    - 根据宏观架构分析，创建或更新概念页面：`/wiki_path/concepts/architecture_<repo_name>.md`
    - 将业务概念（如 `Auth_Flow`, `Data_Pipeline`）链接到 Concept 页面。
    - 写入完成后，再向用户简短汇报已存入的路径。
