@@ -72,10 +72,12 @@ version: 1.0.0
    - key_concepts: 3-5个关键概念
    - contributions: 主要贡献
 
-4. **写入 Wiki**
+4. **写入 Wiki (CRITICAL)**
+   - **强制要求：你必须使用 `Write` 工具将生成的内容直接写入到对应的 Markdown 文件中，绝对不能仅仅在聊天框中输出。**
    - 创建 source 文件: /wiki_path/sources/<slug>.md
    - 如有关联 concept，更新 concept 文件或创建新 concept
    - 更新 index.md
+   - 只有在确认文件写入成功后，才能向用户总结你的工作。
 
 ### Source 文件模板
 ```markdown
@@ -199,10 +201,12 @@ last_updated: <YYYY-MM-DD>
      4. **扩展性机制 (Extensibility)**: 系统提供了哪些接口/基类供二次开发或插件化扩展？
      5. **复杂机制 (Tricky mechanisms)**: 代码中是否有特殊的并发处理、硬件通信协议（如 CAN、RS485）或复杂的业务状态机？
 
-4. **写入 Wiki (Code Source & Concept)**
+4. **写入 Wiki (Code Source & Concept - CRITICAL)**
+   - **强制要求：分析完成后，你必须使用 `Write` 工具将报告直接写入以下指定的文件路径中。不要只在聊天框里口头汇报！**
    - 创建源文件：`/wiki_path/sources/code_<slug>.md`
    - 根据宏观架构分析，创建或更新概念页面：`/wiki_path/concepts/architecture_<repo_name>.md`
    - 将业务概念（如 `Auth_Flow`, `Data_Pipeline`）链接到 Concept 页面。
+   - 写入完成后，再向用户简短汇报已存入的路径。
 
 ### Code Source 文件模板
 ```markdown
